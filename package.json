@@ -1,0 +1,10 @@
+{
+  "name": "pdf_neutralize",
+  "version": "1.0.0",
+  "description": "Reduces the risk of untrusted PDF documents by reducing them to only printable elements. Internally, the PDF is converted to PS2 and then back to PDF using GhostScript running in a WASM sandbox.",
+  "bin": {
+    "pdf_neutralize": "./main.js"
+  },
+  "license": "AGPL",
+  "dependencies":{"@jspawn/ghostscript-wasm":"^0.0.2"}
+}
