@@ -9,7 +9,7 @@ if (process.argv[2] == '--help') {
   
   console.log("");
   console.log("Usage: pdf_neutralize [output format] < input.pdf > output.pdf");
-  console.log("  where [output format] is pdf to jpg, or omitted")
+  console.log("  where [output format] is pdf, jpg, jpg/b64 or omitted")
   return;
 }
 
@@ -30,7 +30,7 @@ async function callMain() {
   const ghostscriptModule = await ghostscript();
 
   ghostscriptModule.FS.writeFile('/input.pdf', inputPdf);
-  if (mode == 'jpeg') {
+  if (mode == 'jpeg' || mode == 'jpeg/b64') {
     var retCode = await ghostscriptModule.callMain([
       "-q",
       "-sstdout=%stderr",
@@ -44,8 +44,7 @@ async function callMain() {
       "/input.pdf"])
     if (retCode) throw "Converting to JPEG failed.";
     var retBuffer = ghostscriptModule.FS.readFile('/output.jpg', {encoding: 'binary'});
-    
-    return retBuffer;
+    return mode == 'jpeg/b64' ? Buffer.from(retBuffer).toString('base64') : retBuffer;
   } else if (mode == 'pdf') {
     var retCode = await ghostscriptModule.callMain([
       "-q",
