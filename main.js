@@ -8,9 +8,12 @@ if (process.argv[2] == '--help') {
   console.log("Errors may be written to stderr.")
   
   console.log("");
-  console.log("Usage: pdf_neutralize < input.pdf > output.pdf");
+  console.log("Usage: pdf_neutralize [output format] < input.pdf > output.pdf");
+  console.log("  where [output format] is pdf to jpg, or omitted")
   return;
 }
+
+var mode = process.argv[2] || 'pdf';
 
 function drainStream(stream) {
   return new Promise((resolve, reject) => {
@@ -27,36 +30,55 @@ async function callMain() {
   const ghostscriptModule = await ghostscript();
 
   ghostscriptModule.FS.writeFile('/input.pdf', inputPdf);
-
-  var retCode = await ghostscriptModule.callMain([
-    "-q",
-    "-sstdout=%stderr",
-    "-dBATCH", 
-    "-dSAFER",
-    "-DNOPAUSE",
-    "-dNOPROMPT",
-    "-sDEVICE=ps2write",
-    "-sOutputFile=output.ps",
-    "-f", "/input.pdf"
-  ]);
-  if (retCode) throw "Reading pdf failed.";
-  
-  var retCode = await ghostscriptModule.callMain([
-    "-q",
-    "-sstdout=%stderr",
-    "-dBATCH", 
-    "-dSAFER",
-    "-DNOPAUSE",
-    "-dNOPROMPT",
-    "-sDEVICE=pdfwrite",
-    "-sOutputFile=output.pdf",
-    "-f", "/output.ps"
-  ]);
-  if (retCode) throw "Re-writing PDF failed.";
-  
-  var retBuffer = ghostscriptModule.FS.readFile('/output.pdf', {encoding: 'binary'});
-  
-  return retBuffer;
+  if (mode == 'jpeg') {
+    var retCode = await ghostscriptModule.callMain([
+      "-q",
+      "-sstdout=%stderr",
+      "-dSAFER", 
+      "-dBATCH", 
+      "-dNOPAUSE", 
+      "-dNOPROMPT",
+      "-sDEVICE=jpeg", 
+      "-r144", 
+      "-sOutputFile=output.jpg", 
+      "/input.pdf"])
+    if (retCode) throw "Converting to JPEG failed.";
+    var retBuffer = ghostscriptModule.FS.readFile('/output.jpg', {encoding: 'binary'});
+    
+    return retBuffer;
+  } else if (mode == 'pdf') {
+    var retCode = await ghostscriptModule.callMain([
+      "-q",
+      "-sstdout=%stderr",
+      "-dBATCH", 
+      "-dSAFER",
+      "-DNOPAUSE",
+      "-dNOPROMPT",
+      "-sDEVICE=ps2write",
+      "-sOutputFile=output.ps",
+      "-f", "/input.pdf"
+    ]);
+    if (retCode) throw "Reading pdf failed.";
+    
+    var retCode = await ghostscriptModule.callMain([
+      "-q",
+      "-sstdout=%stderr",
+      "-dBATCH", 
+      "-dSAFER",
+      "-DNOPAUSE",
+      "-dNOPROMPT",
+      "-sDEVICE=pdfwrite",
+      "-sOutputFile=output.pdf",
+      "-f", "/output.ps"
+    ]);
+    if (retCode) throw "Re-writing PDF failed.";
+    
+    var retBuffer = ghostscriptModule.FS.readFile('/output.pdf', {encoding: 'binary'});
+    
+    return retBuffer;
+  } else {
+    throw "Invalid format."
+  }
 }
 
 callMain().then(outputBytes => {
